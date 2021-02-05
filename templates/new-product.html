@@ -1,0 +1,16 @@
+{% extends 'bootstrap/base.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Add product{% endblock %}
+
+{% block content %}
+
+
+<div class="container">
+  <h1>Welcome to the secret page. </h1>
+  <h5>Let's create some new magic.</h5>
+  {{ wtf.quick_form(form, novalidate=True, button_map={"submit": "primary"}) }}
+
+
+</div>
+{% endblock %}

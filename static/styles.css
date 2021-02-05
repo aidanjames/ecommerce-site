@@ -1,0 +1,22 @@
+.main-title {
+    text-align: center;
+    padding-top: 50px;
+    padding-bottom: 20px;
+}
+
+.sub-title {
+    text-align: center;
+    padding-bottom: 20px;
+}
+
+.nav-link-ajp {
+    color: green;
+}
+
+.main-image {
+    display: block;
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 5%;
+}
