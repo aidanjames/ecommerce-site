@@ -6,6 +6,9 @@
         integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.1/css/all.css"
         integrity="sha384-vp86vTRFVJgpjF9jiIGPEEqYqlDwgyBgEF109VFjmqGmIY/Y4HV4d3Gp2irVfcrp" crossorigin="anonymous">
+  <!--MY CSS-->
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet" type="text/css">
+
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
           integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
           crossorigin="anonymous"></script>
@@ -16,22 +19,23 @@
           integrity="sha384-w1Q4orYjBQndcko6MimVbzY0tgp4pWB4lZ7lr30WKz0vr/aWKhXdBNmNb5D92v7s"
           crossorigin="anonymous"></script>
 
-  <!--MY CSS-->
-  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
   <title>{% block title %}{% endblock %}</title>
 </head>
 <body>
 
-<nav class="navbar sticky-top navbar-light bg-light">
+<nav class="navbar sticky-top bg-light ajp-nav">
   <div class="container-fluid">
-    <a href="{{ url_for('product_page') }}" class="navbar-brand">tree-me</a>
+    <a href="{{ url_for('product_page') }}" class="navbar-brand mb-0 h1">treeme</a>
     <div class="d-flex">
       {% if not current_user.is_anonymous %}
+      {% if current_user.id == 1 %}
+      <a class="nav-link nav-link-ajp" href="{{ url_for('add_new_product') }}">Add product</a>
+      {% endif %}
       <a class="nav-link nav-link-ajp" href="{{ url_for('logout') }}">Log out</a>
       {% else %}
-      <a class="nav-link nav-link-ajp" href="{{ url_for('login') }}">Log in</a>
+      <a class="nav-link" href="{{ url_for('login') }}">Log in</a>
       {% endif %}
-      <a class="nav-link nav-link-ajp" href="{{ url_for('cart') }}"><i class="fas fa-shopping-cart"></i></a>
+      <a class="nav-link" href="{{ url_for('cart') }}"><i class="fas fa-shopping-cart"></i></a>
     </div>
   </div>
 </nav>

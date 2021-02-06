@@ -1,17 +1,22 @@
-from flask import Flask, render_template, redirect, url_for, flash, abort, request
+from flask import Flask, render_template, redirect, url_for, flash, abort, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import relationship, load_only
+from sqlalchemy.orm import relationship
 from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user
 from forms import CreateProductForm, CreateCustomerForm, LogInForm
 from functools import wraps
 import os
 from datetime import datetime
 from flask_bootstrap import Bootstrap
+import stripe
+
+stripe.api_key = os.getenv("STRIPE_API_KEY")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 Bootstrap(app)
+
+MY_DOMAIN = "http://192.168.0.10:5000"
 
 # CONNECT TO DB
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///shop.db")
@@ -50,9 +55,11 @@ class Purchase(db.Model):
 class Product(db.Model):
     __tablename__ = "products"
     id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(50), nullable=False)
     description = db.Column(db.String(129), nullable=False)
     price = db.Column(db.Float, nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
+    name = db.Column(db.String(50), nullable=True)
 
     # Relationships
     purchase = relationship("Purchase", back_populates="product")
@@ -80,16 +87,17 @@ def admin_only(f):
 
 @app.route('/')
 def product_page():
-    in_cart = db.session.query(Purchase).filter(Purchase.purchaser_id == current_user.get_id(),
-                                                Purchase.paid is not True)
-    user_pur_ids = [pur.id for pur in in_cart]
-
-    purchased_by_others = db.session.query(Purchase).filter(Purchase.purchaser_id != current_user.get_id())
-    other_pur_ids = [pur.id for pur in purchased_by_others]
-
-    # Reduce the list of available products that are not reserved/purchased by others
-    products_reduced = [product for product in Product.query.all() if product.id not in other_pur_ids]
-    return render_template("index.html", all_products=products_reduced, current_user=current_user, in_cart=user_pur_ids)
+    if not current_user.is_anonymous:
+        in_cart = db.session.query(Purchase).filter(Purchase.purchaser_id == current_user.id, Purchase.paid is not True)
+        in_cart = [pur.product_id for pur in in_cart]
+        purchased_by_others = db.session.query(Purchase).filter(Purchase.purchaser_id != current_user.id)
+        other_pur_ids = [pur.product_id for pur in purchased_by_others]
+        products_reduced = [product for product in Product.query.all() if product.id not in other_pur_ids]
+    else:
+        in_cart = []
+        all_purchases_product_id = [purchase.product_id for purchase in Purchase.query.all()]
+        products_reduced = [product for product in Product.query.all() if product.id not in all_purchases_product_id]
+    return render_template("index.html", all_products=products_reduced, current_user=current_user, in_cart=in_cart)
 
 
 @app.route('/register', methods=["GET", "POST"])
@@ -97,7 +105,7 @@ def register():
     form = CreateCustomerForm()
     if form.validate_on_submit():
         if db.session.query(Customer).filter_by(email=form.email.data).first():
-            flash("Email already exists, log in!")
+            flash("Email already exists, log in!", "error")
             return redirect(url_for("login"))
 
         hashed_password = generate_password_hash(
@@ -126,10 +134,10 @@ def login():
     if form.validate_on_submit():
         customer = db.session.query(Customer).filter_by(email=form.email.data).first()
         if not customer:
-            flash("Email not registered, please try again.")
+            flash("Email not registered, please try again or register for a new account.", "error")
             return redirect(url_for("login"))
         elif not check_password_hash(customer.password, form.password.data):
-            flash("Invalid password, please try again.")
+            flash("Invalid password, please try again.", "error")
             return redirect(url_for("login"))
         else:
             login_user(customer)
@@ -147,8 +155,16 @@ def logout():
 @app.route("/cart")
 def cart():
     if current_user.is_anonymous:
-      return redirect(url_for('login'))
-    return render_template("cart.html")
+        return redirect(url_for('login'))
+
+    # Work out what products are in the cart and send it to the template
+    in_cart = db.session.query(Purchase).filter(Purchase.purchaser_id == current_user.id, Purchase.paid is not True)
+    in_cart = [pur.product_id for pur in in_cart]
+    products_in_cart = [product for product in Product.query.all() if product.id in in_cart]
+    total_price = 0
+    for product in products_in_cart:
+        total_price += product.price
+    return render_template("cart.html", purchases=products_in_cart, total=total_price)
 
 
 @app.route("/add-to-cart")
@@ -161,7 +177,18 @@ def add_to_cart():
         db.session.add(purchase)
         db.session.commit()
         return redirect(url_for("product_page"))
+    flash("You need to log in to start shopping.", "error")
     return redirect(url_for('login'))
+
+
+@app.route("/delete-from-cart")
+def delete_from_cart():
+    product_id = request.args.get("product_id")
+    purchase = db.session.query(Purchase).filter(Purchase.product_id == product_id).first()
+    if purchase:
+        db.session.delete(purchase)
+        db.session.commit()
+    return redirect(url_for('cart'))
 
 
 @app.route("/new-product", methods=["GET", "POST"])
@@ -170,6 +197,7 @@ def add_new_product():
     form = CreateProductForm()
     if form.validate_on_submit():
         new_product = Product(
+            title=form.title.data,
             description=form.description.data,
             price=form.price.data,
             img_url=form.img_url.data
@@ -182,12 +210,46 @@ def add_new_product():
 
 @app.route("/delete/<int:product_id>")
 @admin_only
-def delete_post(product_id):
+def delete_product(product_id):
     product_to_delete = Product.query.get(product_id)
     db.session.delete(product_to_delete)
     db.session.commit()
     return redirect(url_for('product_page'))
 
+
+@app.route("/payment", methods=["POST"])
+def process_payment():
+    # TODO Add in the payment stuff here!
+    return render_template("payment.html")
+
+
+# @app.route("/create-checkout-session", method=["POST"])
+# def create_checkout_session():
+#     # TODO Add the name to the product table
+#     # TODO Get the product information to use for the checkout session
+#     try:
+#         checkout_session = stripe.checkout.Session.create(
+#             payment_method_types=["card"],
+#             line_items=[
+#                 {
+#                     "price_data": {
+#                         "currency": "gbp",
+#                         "unit_amount": 20.57,
+#                         "product_data": {
+#                             "name": "Tim (tree)",
+#                             "images": ["https://images.unsplash.com/reserve/bOvf94dPRxWu0u3QsPjF_tree.jpg?ixlib=rb-1.2.1&ixid=MXwxMjA3fDB8MHxzZWFyY2h8MXx8dHJlZXxlbnwwfHwwfA%3D%3D&auto=format&fit=crop&w=500&q=60"],
+#                         },
+#                     },
+#                     "quantity": 1,
+#                 }
+#             ],
+#             mode="payment",
+#             success_url=MY_DOMAIN + "/success.html",
+#             cancel_url=MY_DOMAIN + "/cancel.html",
+#         )
+#         return jsonify({"id": checkout_session.id})
+#     except Exception as e:
+#         return jsonify(error=str(e)), 403
 
 @app.context_processor
 def inject_now():
@@ -195,4 +257,4 @@ def inject_now():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='192.168.0.10', port=5000)

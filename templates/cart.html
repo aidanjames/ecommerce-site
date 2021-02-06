@@ -1,9 +1,55 @@
+{% import "bootstrap/wtf.html" as wtf %}
+
 {% extends "base.html" %}
-
-{% block title %}Products{% endblock %}
-
+{% block title %}Cart{% endblock %}
 {% block content %}
 
-<h1>This is where the cart will be.</h1>
+<div class="container">
+
+  {% if purchases|length == 0 %}
+  <h3 class="register-link">The cart is empty :-( <br><br><a href="{{ url_for('product_page') }}">Go shopping</a></h3>
+  {% else %}
+  <form action="{{ url_for('process_payment') }}" method="post">
+
+    <table class="table cart-table">
+      <thead class="thead-light">
+      <tr>
+        <th scope="col">Tree</th>
+        <th scope="col">Name</th>
+        <th scope="col">Price</th>
+        <th scope="col"></th>
+      </tr>
+      </thead>
+      <tbody>
+
+      {% for purchase in purchases %}
+      <tr>
+        <td class="align-middle"><img class="cart-img" src="{{ purchase.img_url }}"></td>
+        <td class="align-middle">
+          <input class="form-control" type="text" placeholder="Add a name" required>
+        </td>
+        <td class="align-middle">£{{ purchase.price }}</td>
+        <td class="align-middle"><a href="{{ url_for('delete_from_cart', product_id=purchase.id) }}">Delete</a></td>
+      </tr>
+      {% endfor %}
+      <tr class="table-primary">
+        <td>Total</td>
+        <td></td>
+        <td>£{{ total }}</td>
+        <td></td>
+      </tr>
+      </tbody>
+    </table>
+
+    <div class="text-right">
+      {% if total > 0 %}
+      <button type="submit" class="btn btn-primary">Proceed to payment</button>
+      {% endif %}
+    </div>
+
+  </form>
+  {% endif %}
+
+</div>
 
 {% endblock %}
