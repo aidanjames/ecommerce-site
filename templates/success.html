@@ -1,10 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Title</title>
-</head>
-<body>
+{% import "bootstrap/wtf.html" as wtf %}
 
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Success{% endblock %}
+{% block content %}
+
+<div class="container">
+
+  <h3 class="register-link">Your payment was successful. We'll email your name certificate right now. Thanks!</h3>
+
+</div>
+
+{% endblock %}

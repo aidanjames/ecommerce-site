@@ -16,7 +16,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 Bootstrap(app)
 
-MY_DOMAIN = "https://treeme-ajp.herokuapp.com/"
+MY_DOMAIN = "https://treeme-ajp.herokuapp.com"
 
 # CONNECT TO DB
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///shop.db")
@@ -170,7 +170,6 @@ def cart():
 @app.route("/add-to-cart")
 def add_to_cart():
     product_id = request.args.get("product_id")
-    print(f"The product id is {product_id}")
     if not current_user.is_anonymous:
         # Add new purchase
         purchase = Purchase(paid=False, purchaser_id=current_user.get_id(), product_id=product_id)
@@ -217,39 +216,46 @@ def delete_product(product_id):
     return redirect(url_for('product_page'))
 
 
-@app.route("/payment", methods=["POST"])
-def process_payment():
-    # TODO Add in the payment stuff here!
-    return render_template("payment.html")
+@app.route("/create-checkout-session", methods=["POST"])
+def create_checkout_session():
+    in_cart = db.session.query(Purchase).filter(Purchase.purchaser_id == current_user.id, Purchase.paid is not True)
+    print(in_cart)
+    in_cart = [pur.product_id for pur in in_cart]
+    print(in_cart)
+    products_in_cart = [product for product in Product.query.all() if product.id in in_cart]
+    print(products_in_cart)
+    line_items = []
+    for product in products_in_cart:
+        amt = int(product.price * 100)
+        new_item = {
+            "price_data": {
+                "currency": "gbp",
+                "unit_amount": amt,
+                "product_data": {
+                    "name": product.title,
+                    "images": [product.img_url],
+                },
+            },
+            "quantity": 1,
+        }
+        line_items.append(new_item)
+    print(line_items)
 
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=line_items,
+            mode="payment",
+            success_url=MY_DOMAIN + "/success.html",
+            cancel_url=MY_DOMAIN + "/cancel.html",
+        )
+        thing_to_return = jsonify({"id": checkout_session.id})
+        print(thing_to_return)
+        return thing_to_return
+    except Exception as e:
+        print(f"We've got an exception...{e}")
+        return jsonify(error=str(e)), 403
 
-# @app.route("/create-checkout-session", method=["POST"])
-# def create_checkout_session():
-#     # TODO Add the name to the product table
-#     # TODO Get the product information to use for the checkout session
-#     try:
-#         checkout_session = stripe.checkout.Session.create(
-#             payment_method_types=["card"],
-#             line_items=[
-#                 {
-#                     "price_data": {
-#                         "currency": "gbp",
-#                         "unit_amount": 20.57,
-#                         "product_data": {
-#                             "name": "Tim (tree)",
-#                             "images": ["https://images.unsplash.com/reserve/bOvf94dPRxWu0u3QsPjF_tree.jpg?ixlib=rb-1.2.1&ixid=MXwxMjA3fDB8MHxzZWFyY2h8MXx8dHJlZXxlbnwwfHwwfA%3D%3D&auto=format&fit=crop&w=500&q=60"],
-#                         },
-#                     },
-#                     "quantity": 1,
-#                 }
-#             ],
-#             mode="payment",
-#             success_url=MY_DOMAIN + "/success.html",
-#             cancel_url=MY_DOMAIN + "/cancel.html",
-#         )
-#         return jsonify({"id": checkout_session.id})
-#     except Exception as e:
-#         return jsonify(error=str(e)), 403
 
 @app.context_processor
 def inject_now():
