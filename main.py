@@ -16,7 +16,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 Bootstrap(app)
 
-MY_DOMAIN = "http://192.168.0.10:5000"
+MY_DOMAIN = "https://treeme-ajp.herokuapp.com/"
 
 # CONNECT TO DB
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///shop.db")
