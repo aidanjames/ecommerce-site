@@ -15,7 +15,6 @@ class CreateCustomerForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()], render_kw={"autofocus": True, "autocomplete": 'off'})
     email = StringField("Email", validators=[DataRequired(), Email()], render_kw={"autocomplete": 'off'})
     password = PasswordField("Password", validators=[DataRequired(), EqualTo('confirm', message='Passwords must match')])
-    # TODO Add password confirmation field
     confirm = PasswordField("Repeat Password")
     submit = SubmitField("Register")
 

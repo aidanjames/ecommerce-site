@@ -9,6 +9,8 @@ import os
 from datetime import datetime
 from flask_bootstrap import Bootstrap
 import stripe
+import smtplib
+
 
 stripe.api_key = os.getenv("STRIPE_API_KEY")
 
@@ -219,11 +221,8 @@ def delete_product(product_id):
 @app.route("/create-checkout-session", methods=["POST"])
 def create_checkout_session():
     in_cart = db.session.query(Purchase).filter(Purchase.purchaser_id == current_user.id, Purchase.paid is not True)
-    print(in_cart)
     in_cart = [pur.product_id for pur in in_cart]
-    print(in_cart)
     products_in_cart = [product for product in Product.query.all() if product.id in in_cart]
-    print(products_in_cart)
     line_items = []
     for product in products_in_cart:
         amt = int(product.price * 100)
@@ -239,7 +238,6 @@ def create_checkout_session():
             "quantity": 1,
         }
         line_items.append(new_item)
-    print(line_items)
 
     try:
         checkout_session = stripe.checkout.Session.create(
@@ -249,9 +247,7 @@ def create_checkout_session():
             success_url=MY_DOMAIN + "/success",
             cancel_url=MY_DOMAIN + "/cancel",
         )
-        thing_to_return = jsonify({"id": checkout_session.id})
-        print(thing_to_return)
-        return thing_to_return
+        return jsonify({"id": checkout_session.id})
     except Exception as e:
         print(f"We've got an exception...{e}")
         return jsonify(error=str(e)), 403
@@ -259,8 +255,36 @@ def create_checkout_session():
 
 @app.route("/success")
 def success():
-    # TODO Email customer and set purchase to paid.
-    return render_template("success.html")
+    if not current_user.is_anonymous:
+        in_cart = db.session.query(Purchase).filter(Purchase.purchaser_id == current_user.id, Purchase.paid is not True)
+        for product in in_cart:
+            product.paid = True
+            db.session.commit()
+
+        in_cart = [pur.product_id for pur in in_cart]
+        products_in_cart = [product for product in Product.query.all() if product.id in in_cart]
+        message = f"Subject: Your purchase was successful\n\nHi {current_user.name},\n\n" \
+                  f"You successfully adopted the following grateful trees:\n\n"
+        for product in products_in_cart:
+            message += f"- {product.title} (£{product.price})\n"
+        message += "\nAs promised, we'll plant another one in your honour.\n\n" \
+                   "Thanks for your business. Hope to see you again soon!\n\n" \
+                   "Best,\nAidan"
+        message = message.encode('ascii', 'ignore').decode('ascii')
+        with smtplib.SMTP(os.getenv("SMTP_SERVER")) as connection:
+            connection.starttls()
+            connection.login(user=os.getenv("MY_EMAIL"), password=os.getenv("EMAIL_PASSWORD"))
+            connection.sendmail(from_addr=os.getenv("MY_EMAIL"),
+                                to_addrs=current_user.email,
+                                msg=message)
+        return render_template("success.html")
+    return "There's been a problem.", 403
+
+
+@app.route("/cancel")
+def cancel():
+    return render_template("cancel.html")
+
 
 @app.context_processor
 def inject_now():

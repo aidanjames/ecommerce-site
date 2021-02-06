@@ -89,10 +89,8 @@
 </body>
 
 <script type="text/javascript">
-    // Create an instance of the Stripe object with your publishable API key
     var stripe = Stripe("pk_test_51IHV3GK4H9RcisWqfHwUAO8iZP4KuEUka8TO0hNknr0bbRoUaMvbWOIqpB7JAog8hiug9POlvXeAjQkzbAiSVmwQ00pMs5JHQx");
     var checkoutButton = document.getElementById("checkout-button");
-
 
     checkoutButton.addEventListener("click", function () {
       fetch("/create-checkout-session", {
@@ -105,9 +103,6 @@
           return stripe.redirectToCheckout({ sessionId: session.id });
         })
         .then(function (result) {
-          // If redirectToCheckout fails due to a browser or network
-          // error, you should display the localized error message to your
-          // customer using error.message.
           if (result.error) {
             alert(result.error.message);
           }
@@ -116,9 +111,6 @@
           console.error("Error:", error);
         });
     });
-
-
 </script>
-
 
 </html>
