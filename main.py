@@ -271,12 +271,14 @@ def success():
                    "Thanks for your business. Hope to see you again soon!\n\n" \
                    "Best,\nAidan"
         message = message.encode('ascii', 'ignore').decode('ascii')
-        with smtplib.SMTP(os.getenv("SMTP_SERVER")) as connection:
-            connection.starttls()
-            connection.login(user=os.getenv("MY_EMAIL"), password=os.getenv("EMAIL_PASSWORD"))
-            connection.sendmail(from_addr=os.getenv("MY_EMAIL"),
-                                to_addrs=current_user.email,
-                                msg=message)
+        print(f"This would be the message that would send if I didn't have connection issues via Heroku:\n{message}")
+        # with smtplib.SMTP(os.getenv("SMTP_SERVER")) as connection:
+        #     connection.starttls()
+        #     connection.login(user=os.getenv("MY_EMAIL"), password=os.getenv("EMAIL_PASSWORD"))
+        #     connection.sendmail(from_addr=os.getenv("MY_EMAIL"),
+        #                         to_addrs=current_user.email,
+        #                         msg=message)
+        #     print(f"Message sent to {current_user.email}")
         return render_template("success.html")
     return "There's been a problem.", 403
 
