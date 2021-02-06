@@ -259,6 +259,7 @@ def create_checkout_session():
 
 @app.route("/success")
 def success():
+    # TODO Email customer and set purchase to paid.
     return render_template("success.html")
 
 @app.context_processor
