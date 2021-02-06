@@ -246,8 +246,8 @@ def create_checkout_session():
             payment_method_types=["card"],
             line_items=line_items,
             mode="payment",
-            success_url=MY_DOMAIN + "/success.html",
-            cancel_url=MY_DOMAIN + "/cancel.html",
+            success_url=MY_DOMAIN + "/success",
+            cancel_url=MY_DOMAIN + "/cancel",
         )
         thing_to_return = jsonify({"id": checkout_session.id})
         print(thing_to_return)
@@ -256,6 +256,10 @@ def create_checkout_session():
         print(f"We've got an exception...{e}")
         return jsonify(error=str(e)), 403
 
+
+@app.route("/success")
+def success():
+    return render_template("success.html")
 
 @app.context_processor
 def inject_now():
