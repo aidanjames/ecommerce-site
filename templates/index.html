@@ -8,6 +8,14 @@
   <h1 class="main-title display-3">Hi. Care to adopt a tree?</h1>
   <h4 class="sub-title">For every purchase, we'll plant another tree to say thanks.</h4>
 
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  {% for category, message in messages %}
+  <p class="{{ category }}">{{ message }}</p>
+  {% endfor %}
+  {% endif %}
+  {% endwith %}
+
   <div class="album py-5 bg-light">
     <div class="container">
       <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
@@ -28,7 +36,8 @@
                   {% if product.id in in_cart %}
                   <a href="{{ url_for('cart') }}" class="btn btn-outline-secondary">Check out</a>
                   {% else %}
-                  <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-outline-primary">Add to cart</a>
+                  <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn btn-outline-primary">Add to
+                    cart</a>
                   {% endif %}
                 </div>
                 <small class="text-muted">£{{product.price}}</small>

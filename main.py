@@ -173,10 +173,16 @@ def cart():
 def add_to_cart():
     product_id = request.args.get("product_id")
     if not current_user.is_anonymous:
-        # Add new purchase
-        purchase = Purchase(paid=False, purchaser_id=current_user.get_id(), product_id=product_id)
-        db.session.add(purchase)
-        db.session.commit()
+        # Check product is not an in-flight purchase
+        existing_purchase = db.session.query(Purchase).filter(Purchase.product_id == product_id).first()
+        print(existing_purchase)
+        if not existing_purchase:
+            # Add new purchase
+            purchase = Purchase(paid=False, purchaser_id=current_user.get_id(), product_id=product_id)
+            db.session.add(purchase)
+            db.session.commit()
+            return redirect(url_for("product_page"))
+        flash("Sorry, that product has just been purchased.", "error")
         return redirect(url_for("product_page"))
     flash("You need to log in to start shopping.", "error")
     return redirect(url_for('login'))

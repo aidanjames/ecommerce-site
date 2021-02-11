@@ -11,7 +11,8 @@ a {
 }
 
 .error {
-    color: red
+    color: red;
+    text-align: center;
 }
 
 .main-title {
