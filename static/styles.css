@@ -71,6 +71,15 @@ a {
     padding-top: 50px;
 }
 
+.nav-link-red {
+    color: red;
+}
+
+.nav-link-red:hover {
+    color: white;
+}
+
+
 /* BOOTSTRAP OVERRIDES */
 .btn-primary {
    background-color: #16c79a;
