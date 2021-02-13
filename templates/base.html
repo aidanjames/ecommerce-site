@@ -37,7 +37,7 @@
       {% endif %}
 
       {% if in_cart|length > 0 %}
-      <a class="nav-link-red" href="{{ url_for('cart') }}"><i class="fas fa-shopping-cart"></i></a>
+      <a class="nav-link" href="{{ url_for('cart') }}"><i style="color:red;" class="fas fa-shopping-cart"></i></a>
       {% else %}
       <a class="nav-link" href="{{ url_for('cart') }}"><i class="fas fa-shopping-cart"></i></a>
       {% endif %}
