@@ -71,14 +71,6 @@ a {
     padding-top: 50px;
 }
 
-.nav-link-red {
-    color: red;
-}
-
-.nav-link-red:hover {
-    color: white;
-}
-
 
 /* BOOTSTRAP OVERRIDES */
 .btn-primary {
@@ -130,4 +122,8 @@ a {
 .table .thead-light th {
     color: #f8f1f1;
     background-color: #11698e;
+}
+
+.text-right {
+    padding-bottom: 10px;
 }
